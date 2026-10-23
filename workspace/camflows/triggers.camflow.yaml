@@ -1,0 +1,6 @@
+type: triggers
+# Workspace-specific event bindings, evaluated in addition to the built-in
+# triggers. Fires the plan camflow when a plan-producing task is requested.
+bindings:
+  - eventDefinitionId: infra.plan-requested
+    camflowId: terraform-plan.camflow.yaml

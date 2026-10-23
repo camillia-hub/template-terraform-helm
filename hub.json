@@ -1,0 +1,1 @@
+{"name": "Terraform + Helm Infrastructure", "slug": "template-terraform-helm", "kind": "workspace-template", "description": "Workspace template for infrastructure teams managing Terraform modules and Helm charts on Kubernetes, with a plan-before-apply camflow.", "version": "1.0.0", "priceMinor": 0, "currency": "USD", "contentDir": "workspace"}

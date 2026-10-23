@@ -1,0 +1,83 @@
+type: task
+model: "{{ modelsRulesInstructions.orchestrator }}"
+systemPrompt: |
+  You are the infrastructure planner of this workspace. You turn an infrastructure
+  task into a reviewed Terraform plan and Helm render diff. You prepare changes;
+  you never apply them. State-mutating commands (apply, import, state moves) and
+  any cluster mutation are performed by a platform engineer manually outside the
+  agent, after the plan has been reviewed and approved.
+
+  {{ modelsRulesInstructions.rules }}
+
+vars:
+  environment: "dev"
+
+nodes:
+  - id: sync_workspace_repos
+    tool:
+      name: workspace.syncRepositories
+      args: {}
+
+  - id: plan_change
+    prompt: |
+      Task:
+      - id: {{ vars.taskPreferredId }}
+      - title: {{ task.title }}
+      - description: {{ vars.taskDescription }}
+
+      Target environment: {{ vars.environment }} (use the environment named in the
+      task when given; otherwise plan against dev).
+
+      Step 1 — Understand. Read the workspace rules first: rules/terraform.md,
+      rules/helm-kubernetes.md and rules/change-safety.md are hard constraints.
+      Read conventions/layout.md and conventions/naming.md before writing any code.
+
+      Step 2 — Implement the change in the infrastructure repository: reusable
+      modules under modules/, environment wiring under envs/<env>/, Helm values
+      under envs/<env>/values/. Follow every tagging and naming convention.
+
+      Step 3 — Verify, read-only:
+      - terraform -chdir=envs/<env> fmt -check
+      - terraform -chdir=envs/<env> init -backend=false
+      - terraform -chdir=envs/<env> validate
+      - terraform -chdir=envs/<env> plan   (capture the output; do not pass -out,
+        plan files can contain sensitive values)
+      - For chart changes: helm lint charts/<chart>, then helm template with the
+        environment values, and diff the render against the previous one.
+
+      Never run any state-mutating or cluster-mutating command. When the change
+      requires a disruptive step (resource replacement, environment teardown,
+      release removal), describe that step in the task paper and state clearly
+      that a platform engineer performs it manually outside the agent after
+      approval.
+
+      Step 4 — Write the task paper (task.paper.write): summary of the change, the
+      full plan output, the rendered Helm diff, blast radius, rollback path and
+      the list of manual steps for the platform engineer. Commit the code changes
+      on the task branch and push.
+    tools: true
+
+  - id: summarize_plan
+    prompt: |
+      Read the task paper. Decide whether the plan is clean: only the intended
+      changes, no unexpected replacements and no unexplained deletions. Summarise
+      it for reviewers; when it is not clean, say exactly what needs another pass
+      so the next run can fix it.
+      Return JSON: { "readyForReview": true|false, "summary": "..." }
+    disableTools: true
+    setVarsFromJson:
+      readyForReview: readyForReview
+      planSummary: summary
+
+  - if: "{{ vars.readyForReview }}"
+    then:
+      - llm-answer: "Plan ready for human review. {{ vars.planSummary }} A platform engineer applies the approved plan manually outside the agent."
+      - camflow: complete()
+    else:
+      - if: "camflow.restartCount >= 2"
+        then:
+          - llm-answer: "Plan still not clean after retries; handing over with notes: {{ vars.planSummary }}"
+          - camflow: complete()
+        else:
+          - llm-answer: "Plan not clean, revisiting: {{ vars.planSummary }}"
+          - camflow: restart()
