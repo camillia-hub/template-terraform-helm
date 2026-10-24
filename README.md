@@ -35,13 +35,43 @@ workspace/
     environments.md             dev/staging/prod guardrails
 ```
 
+Two payload areas have special meaning to the product rather than to the
+workspace tree: `template.json` declares the expected repositories (see
+[Template contract](#template-contract)), and `repos/` carries the seed
+content the wizard applies to them (`infra`, `charts`).
+
 ## How to use
 
 Install from the Camillia Community Hub, then create a workspace from this
 template. Camillia installs the `workspace/` tree as the new workspace's
-`.workspace` contract: the agent reads these rules, conventions, camflow bindings,
-repository descriptors and docs skeletons before every task. After installation,
-adapt the environment names, module list and pinned versions to your platform.
+`.workspace` contract: the agent reads these rules, conventions, camflow
+bindings, repository descriptors and docs skeletons before every task. Where
+the workspace files carry `{{ projectName }}` or `{{ orgName }}` tokens, they
+are substituted with your project and organization names when the template is
+applied — no manual placeholder hunt. After installation, adapt the
+environment names, module list and pinned versions to your platform.
+
+## Template contract
+
+`template.json` declares the repositories this product is made of; the
+workspace wizard walks each one and offers to **create** a fresh repo at your
+git provider or **load** an existing one:
+
+| Key | Label | Description | Required | Override default |
+|---|---|---|---|---|
+| `infra` | Infrastructure | Terraform modules | yes | no |
+| `charts` | Helm charts | Helm charts | yes | no |
+
+Seed content for each repo lives under `repos/<key>/` (a starter README and
+`.gitignore`). Applying a seed to a repo that already has content requires the
+"authorize content override" choice in the wizard; before anything is
+overwritten the current branch heads are tagged
+`camillia-backup/template-<yyyyMMdd-HHmmss>`, so existing work is never lost.
+
+Replacement tokens — `{{ orgName }}`, `{{ projectName }}` and `{{ projectId }}`
+— are substituted across all workspace-bound files at apply time. See the
+[extension guidelines](https://github.com/camillia-hub/extension-guidelines)
+for the full template contract.
 
 ## License
 

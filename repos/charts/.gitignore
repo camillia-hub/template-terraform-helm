@@ -1,0 +1,15 @@
+# Packaged charts
+*.tgz
+
+# Vendored chart dependencies
+charts/*/charts/
+
+# Helm cache and local config
+.helm/
+
+# Rendered output
+rendered/
+
+# OS noise
+.DS_Store
+Thumbs.db

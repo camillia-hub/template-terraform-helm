@@ -1,0 +1,18 @@
+{
+  "repositories": [
+    {
+      "key": "infra",
+      "label": "Infrastructure",
+      "description": "Terraform modules",
+      "required": true,
+      "overrideContent": false
+    },
+    {
+      "key": "charts",
+      "label": "Helm charts",
+      "description": "Helm charts",
+      "required": true,
+      "overrideContent": false
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Infrastructure workspace: Terraform + Helm
 
 This workspace owns the cloud infrastructure and Kubernetes deployments of the
-product platform: Terraform for cloud resources, Helm charts for workloads (see
+**{{ projectName }}** platform: Terraform for cloud resources, Helm charts for workloads (see
 `repositories/infrastructure.md`).
 
 The agent's job is to **plan and prepare** changes. Applying them, upgrading
