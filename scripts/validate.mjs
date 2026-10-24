@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // Validates this workspace template before it is published to the Camillia
-// Community Hub. Zero dependencies; run with Node 22 or later:
+// Community Hub, including the anti-collision placement contract: hub.json
+// declares the extension id, and every payload file stays under workspace/
+// with no reserved cam-ext- segments.
+// Zero dependencies; run with Node 22 or later:
 //   node scripts/validate.mjs
 
 import { readdir, readFile, stat } from 'node:fs/promises';
@@ -10,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const workspaceDir = join(repoRoot, 'workspace');
 const MIN_WORKSPACE_FILES = 10;
+const KEBAB_ID = /^[a-z0-9](-?[a-z0-9]){2,39}$/;
 
 const failures = [];
 
@@ -29,6 +33,25 @@ async function listFilesRecursive(dir) {
 
 function toPosix(path) {
   return path.split(sep).join('/');
+}
+
+// 0. hub.json declares the extension id and the workspace contentDir.
+let hub;
+try {
+  hub = JSON.parse(await readFile(join(repoRoot, 'hub.json'), 'utf8'));
+} catch {
+  failures.push('hub.json is missing or not valid JSON.');
+}
+if (hub) {
+  if (typeof hub.id !== 'string' || !KEBAB_ID.test(hub.id)) {
+    failures.push("hub.json must declare a unique kebab-case extension 'id'.");
+  }
+  if (hub.kind !== 'workspace-template') {
+    failures.push(`hub.json kind must be 'workspace-template' (found '${hub.kind}').`);
+  }
+  if (hub.contentDir !== 'workspace') {
+    failures.push(`hub.json contentDir must be 'workspace' (found '${hub.contentDir}').`);
+  }
 }
 
 // 1. workspace/ must exist and contain at least MIN_WORKSPACE_FILES files.
@@ -79,6 +102,23 @@ for (const file of camflowFiles) {
   const requiredKey = isTriggersFile ? 'bindings:' : 'nodes:';
   if (!text.includes(requiredKey)) {
     failures.push(`${label} does not contain "${requiredKey}".`);
+  }
+}
+
+// 4. Placement: every payload file stays under workspace/ (the template is
+//    the workspace's own future content) and no path segment uses the
+//    reserved cam-ext- prefix — templates never use Rules 1-2.
+for (const file of workspaceFiles) {
+  const label = toPosix(relative(repoRoot, file));
+  if (!label.startsWith('workspace/')) {
+    failures.push(`${label} is outside the template's workspace/ content area.`);
+    continue;
+  }
+  for (const segment of label.split('/')) {
+    if (segment.startsWith('cam-ext-')) {
+      failures.push(`${label} misuses the reserved cam-ext- prefix (templates never carry it).`);
+      break;
+    }
   }
 }
 
