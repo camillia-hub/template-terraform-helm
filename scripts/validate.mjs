@@ -2,7 +2,7 @@
 // Validates this workspace template before it is published to the Camillia
 // Community Hub (template v2 contract — see extension-guidelines,
 // docs/manifest-and-publishing.md "Workspace template contract"):
-//  - hub.json declares the extension id and the workspace contentDir;
+//  - extension.json declares the extension id and the workspace contentDir;
 //  - every workspace payload file stays under workspace/ with no reserved
 //    cam-ext- segments (templates are placement-exempt by design);
 //  - template.json declares the expected repositories: kebab-case unique keys,
@@ -67,22 +67,22 @@ function checkNoReservedPrefix(label) {
   }
 }
 
-// 0. hub.json declares the extension id and the workspace contentDir.
+// 0. extension.json declares the extension id and the workspace contentDir.
 let hub;
 try {
-  hub = JSON.parse(await readFile(join(repoRoot, 'hub.json'), 'utf8'));
+  hub = JSON.parse(await readFile(join(repoRoot, 'extension.json'), 'utf8'));
 } catch {
-  failures.push('hub.json is missing or not valid JSON.');
+  failures.push('extension.json is missing or not valid JSON.');
 }
 if (hub) {
   if (typeof hub.id !== 'string' || !KEBAB_ID.test(hub.id)) {
-    failures.push("hub.json must declare a unique kebab-case extension 'id'.");
+    failures.push("extension.json must declare a unique kebab-case extension 'id'.");
   }
   if (hub.kind !== 'workspace-template') {
-    failures.push(`hub.json kind must be 'workspace-template' (found '${hub.kind}').`);
+    failures.push(`extension.json kind must be 'workspace-template' (found '${hub.kind}').`);
   }
   if (hub.contentDir !== 'workspace') {
-    failures.push(`hub.json contentDir must be 'workspace' (found '${hub.contentDir}').`);
+    failures.push(`extension.json contentDir must be 'workspace' (found '${hub.contentDir}').`);
   }
 }
 
